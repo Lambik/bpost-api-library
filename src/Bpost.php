@@ -8,6 +8,7 @@ use Bpost\BpostApiClient\Bpost\Order;
 use Bpost\BpostApiClient\Bpost\Order\Box;
 use Bpost\BpostApiClient\Bpost\Order\Box\Option\Insurance;
 use Bpost\BpostApiClient\Bpost\ProductConfiguration;
+use Bpost\BpostApiClient\Bpost\TrackingInfo;
 use Bpost\BpostApiClient\Common\ValidatedValue\LabelFormat;
 use Bpost\BpostApiClient\Exception\BpostApiResponseException\BpostCurlException;
 use Bpost\BpostApiClient\Exception\BpostApiResponseException\BpostInvalidResponseException;
@@ -31,7 +32,7 @@ class Bpost
     const LABEL_FORMAT_A6 = 'A6';
 
     // URL for the api
-    const API_URL = 'https://api-parcel.bpost.be/services/shm';
+    const API_URL = 'https://api-parcel.bpost.be/services/';
 
     // current version
     const VERSION = '3.3.0';
@@ -99,13 +100,19 @@ class Bpost
      * @param string $accountId
      * @param string $passPhrase
      * @param string $apiUrl
+     * @param string $service
      */
-    public function __construct($accountId, $passPhrase, $apiUrl = self::API_URL)
+    public function __construct($accountId, $passPhrase, $apiUrl = self::API_URL, $service = 'shm')
     {
         $this->accountId = (string)$accountId;
         $this->passPhrase = (string)$passPhrase;
-        $this->apiUrl = (string)$apiUrl;
-        $this->logger = new Logger();
+        
+	    $this->apiUrl = (string)$apiUrl . (string)$service;
+	    if ($service == 'shm') {
+		    $this->apiUrl .= '/' . $this->accountId;
+	    }
+	
+	    $this->logger = new Logger();
     }
 
     /**
@@ -222,7 +229,7 @@ class Bpost
 
         // set options
         $options = array();
-        $options[CURLOPT_URL] = $this->apiUrl . '/' . $this->accountId . $url;
+        $options[CURLOPT_URL] = $this->apiUrl . $url;
         if ($this->getPort() != 0) {
             $options[CURLOPT_PORT] = $this->getPort();
         }
@@ -650,8 +657,28 @@ class Bpost
 
         return Labels::createFromXML($xml);
     }
-
-    /**
+	
+	/**
+	 * Fetch an order
+	 *
+	 * @param $reference
+	 * @return TrackingInfo
+	 * @throws BpostCurlException
+	 * @throws BpostInvalidResponseException
+	 * @throws BpostInvalidSelectionException
+	 */
+	public function fetchTrackingInfo($reference)
+	{
+		$url = '/item/' . (string)$reference . '/trackingInfo';
+		
+		$xml = $this->doCall(
+			$url
+		);
+		
+		return TrackingInfo::createFromXML($xml);
+	}
+	
+	/**
      * Set a logger to permit to the plugin to log events
      *
      * @param LoggerInterface $logger
