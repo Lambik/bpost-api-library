@@ -1457,7 +1457,7 @@
         "ext-curl": "*",
         "ext-mbstring": "*",
         "ext-dom": "20031129",
-        "ext-simplexml": "^7.2"
+        "ext-simplexml": "^7.1"
     },
     "platform-dev": []
 }
